@@ -1,6 +1,4 @@
 package com.example;
-
-
 import java.util.Arrays;
 import java.util.List;
 
@@ -11,53 +9,44 @@ import com.azure.core.management.profile.AzureProfile;
 import com.azure.identity.DefaultAzureCredential;
 import com.azure.identity.DefaultAzureCredentialBuilder;
 import com.azure.resourcemanager.mediaservices.MediaServicesManager;
-import com.azure.resourcemanager.mediaservices.fluent.AssetsClient;
 import com.azure.resourcemanager.mediaservices.fluent.AzureMediaServices;
 import com.azure.resourcemanager.mediaservices.fluent.models.AssetInner;
 import com.azure.resourcemanager.mediaservices.fluent.models.JobInner;
 import com.azure.resourcemanager.mediaservices.fluent.models.TransformInner;
-import com.azure.resourcemanager.mediaservices.implementation.AssetsClientImpl;
-import com.azure.resourcemanager.mediaservices.implementation.AzureMediaServicesBuilder;
-import com.azure.resourcemanager.mediaservices.implementation.AzureMediaServicesImpl;
-import com.azure.resourcemanager.mediaservices.models.Asset;
 import com.azure.resourcemanager.mediaservices.models.BuiltInStandardEncoderPreset;
 import com.azure.resourcemanager.mediaservices.models.EncoderNamedPreset;
-import com.azure.resourcemanager.mediaservices.models.InputDefinition;
-import com.azure.resourcemanager.mediaservices.models.JobInput;
 import com.azure.resourcemanager.mediaservices.models.JobInputAsset;
 import com.azure.resourcemanager.mediaservices.models.JobOutput;
 import com.azure.resourcemanager.mediaservices.models.JobOutputAsset;
-import com.azure.resourcemanager.mediaservices.models.MediaService;
-import com.azure.resourcemanager.mediaservices.models.Mediaservices;
-import com.azure.resourcemanager.mediaservices.models.Preset;
-import com.azure.resourcemanager.mediaservices.models.PresetConfigurations;
-import com.azure.resourcemanager.mediaservices.models.Properties;
 import com.azure.resourcemanager.mediaservices.models.StreamingEndpoint;
-import com.azure.resourcemanager.mediaservices.models.Transform;
 import com.azure.resourcemanager.mediaservices.models.TransformOutput;
 import com.azure.storage.blob.BlobClient;
-import com.azure.storage.blob.BlobClientBuilder;
 import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.blob.BlobContainerClientBuilder;
-import com.ctc.wstx.shaded.msv_core.datatype.xsd.BuiltinAtomicType;
-/**
- * Hello world!
- *
- */
+import io.github.cdimascio.dotenv.Dotenv;
+
 public class App 
 {
     public static void main( String[] args )
     {
         // I'm using VS Code credentials.
         DefaultAzureCredential credential = new DefaultAzureCredentialBuilder().build();
-        AzureProfile profile = new AzureProfile(AzureEnvironment.AZURE);
+        Dotenv dotenv = Dotenv.configure()
+        .directory("./example1")
+        .ignoreIfMalformed()
+        .ignoreIfMissing()
+        .load();
 
+        AzureProfile profile = new AzureProfile(
+            dotenv.get("AZURE_TENANT_ID"), 
+            dotenv.get("AZURE_SUBSCRIPTION_ID"),
+            AzureEnvironment.AZURE);
         
         MediaServicesManager manager = MediaServicesManager.authenticate(credential, profile);
-
+  
         // Config info, and random variables.  Please make sure you change these to 
-        String resourceGroupName = "contractortemp";
-        String accountName = "zjonestemp";
+        String resourceGroupName = "johndeu_managedidentity";
+        String accountName = "johndeumanagedidentity";
         String assetName = "JavaTester1";
 
         String fileName = "SampleVideo_1280x720_10mb.mp4"; // This is actually supposed to be a path, but I just placed file in project root
@@ -70,8 +59,8 @@ public class App
         String outputName = "TestJavaOutput";
 
         // I just sort of enabled everything on the SAS token in order to get it to work. 
-        String SAS = "<SAS Token here>";
-        String storageURL = "<Your Storage URL>";
+        String SAS = "https://johndeumanagedstorage.blob.core.windows.net/?sv=2020-08-04&ss=b&srt=sco&sp=rwdlacitx&se=2022-01-08T09:12:45Z&st=2022-01-07T01:12:45Z&spr=https&sig=yJe0FvHIZc%2Fg1eAplzuMNPDg%2Bs3tYOXNhBJYTp9TyW8%3D";
+        String storageURL = "https://johndeumanagedstorage.blob.core.windows.net";
 
         // Getting list of streaming endpoints, then printing them as an example of Iterables
         PagedIterable<StreamingEndpoint> endpoints = manager.streamingEndpoints().list(resourceGroupName, accountName);
