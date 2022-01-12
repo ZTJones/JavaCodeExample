@@ -1,9 +1,12 @@
 package com.example;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 import java.util.UUID;
- 
+
+import javax.print.attribute.standard.JobName;
+
 // As a heads up, many of these were explored but not used.
 import com.azure.core.http.rest.PagedIterable;
 import com.azure.core.http.rest.Response;
@@ -17,16 +20,31 @@ import com.azure.resourcemanager.mediaservices.fluent.AzureMediaServices;
 import com.azure.resourcemanager.mediaservices.fluent.models.AssetInner;
 import com.azure.resourcemanager.mediaservices.fluent.models.JobInner;
 import com.azure.resourcemanager.mediaservices.fluent.models.TransformInner;
+import com.azure.resourcemanager.mediaservices.models.AacAudio;
+import com.azure.resourcemanager.mediaservices.models.AacAudioProfile;
 import com.azure.resourcemanager.mediaservices.models.BuiltInStandardEncoderPreset;
+import com.azure.resourcemanager.mediaservices.models.Codec;
 import com.azure.resourcemanager.mediaservices.models.EncoderNamedPreset;
+import com.azure.resourcemanager.mediaservices.models.Format;
+import com.azure.resourcemanager.mediaservices.models.H264Complexity;
+import com.azure.resourcemanager.mediaservices.models.H264Layer;
+import com.azure.resourcemanager.mediaservices.models.H264Video;
+import com.azure.resourcemanager.mediaservices.models.JobInput;
 import com.azure.resourcemanager.mediaservices.models.JobInputAsset;
 import com.azure.resourcemanager.mediaservices.models.JobOutput;
 import com.azure.resourcemanager.mediaservices.models.JobOutputAsset;
+import com.azure.resourcemanager.mediaservices.models.Layer;
+import com.azure.resourcemanager.mediaservices.models.Mp4Format;
+import com.azure.resourcemanager.mediaservices.models.Preset;
+import com.azure.resourcemanager.mediaservices.models.PresetConfigurations;
+import com.azure.resourcemanager.mediaservices.models.StandardEncoderPreset;
 import com.azure.resourcemanager.mediaservices.models.StreamingEndpoint;
 import com.azure.resourcemanager.mediaservices.models.TransformOutput;
 import com.azure.storage.blob.BlobClient;
 import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.blob.BlobContainerClientBuilder;
+import com.nimbusds.oauth2.sdk.pkce.CodeChallenge;
+
 import io.github.cdimascio.dotenv.Dotenv;
 
 public class App 
@@ -58,7 +76,7 @@ public class App
         String assetName = "JavaTester1" + uniqueString;
         String fileName = "SampleVideo_1280x720_10mb.mp4"; // This is actually supposed to be a path, but I just placed file in project root
         String blobName = "movie.mp4"; // This is the name of the blob we transfer upload our video into
-        String transformName = "CustomTransformJava";
+        String transformName = "CustomTransformJava_Modified";
         String jobName = "TestJavaJob" + uniqueString;
         String outputName = "TestJavaOutput" + uniqueString;
         
@@ -102,40 +120,96 @@ public class App
         
         // Create preset
         EncoderNamedPreset namedPreset = EncoderNamedPreset.CONTENT_AWARE_ENCODING;
-        BuiltInStandardEncoderPreset preset = new BuiltInStandardEncoderPreset().withPresetName(namedPreset);
+        PresetConfigurations configurations = new PresetConfigurations();
+
+        // PresetConfigurations configurations = new PresetConfigurations().withComplexity(complexity);
+        // BuiltInStandardEncoderPreset preset = new BuiltInStandardEncoderPreset().withPresetName(namedPreset).withConfigurations(configurations);
+        // BuiltInStandardEncoderPreset preset = new BuiltInStandardEncoderPreset().withPresetName(namedPreset).withConfigurations(configurations);
         
         // Create Output
-        TransformOutput outputOne = new TransformOutput().withPreset(preset);
-        TransformOutput[] outputArray = {outputOne};
+        // TransformOutput outputOne = new TransformOutput().withPreset(preset);
+        // TransformOutput[] outputArray = {outputOne};
         
         // Create Transform            
-        List<TransformOutput> outputs = Arrays.asList(outputArray);
+        // List<TransformOutput> outputs = Arrays.asList(outputArray);
 
-        TransformInner transformInner = new TransformInner()
-            .withOutputs(outputs);
+        // TransformInner transformInner = new TransformInner()
+        //     .withOutputs(outputs);
 
-        TransformInner newTransform = ams.getTransforms().createOrUpdate(resourceGroupName, accountName, transformName, transformInner);
+        // TransformInner newTransform = ams.getTransforms().createOrUpdate(resourceGroupName, accountName, transformName, transformInner);
 
         // Need to create an input asset, an output asset
         JobInputAsset chosenAsset = new JobInputAsset().withAssetName(test.name());
-        JobOutputAsset outputAsset = new JobOutputAsset().withAssetName(assetName + "_OUTPUT");
-
+        JobOutputAsset outputAsset = new JobOutputAsset().withAssetName(assetName + "_OUTPUT_Modified");
+        
+        
+        
         // You'll need to have an asset ready to "catch" the results. 
-        ams.getAssets().createOrUpdate(resourceGroupName, accountName, assetName + "_OUTPUT", inner);
-
+        ams.getAssets().createOrUpdate(resourceGroupName, accountName, assetName + "_OUTPUT_Modified", inner);
+        
         // JobOutputAsset extends JobOutput, and JobInputAsset extends JobInput
         JobOutput[] outputArr = {outputAsset};
         List<JobOutput> jobOutputList = Arrays.asList(outputArr);
         
+        // manager.transforms().define(transformName).withExistingMediaService(resourceGroupName, accountName).withOutputs(outputs).create();
+
         // We need to define the job with inputs and outputs
-        JobInner jobInner = new JobInner().withInput(chosenAsset).withOutputs(jobOutputList);
-
-        // and from here we can go ahead and create that job.  Check the portal for when it's done.  Consider using
-        // createWithResponse and exploring the methods under the AzureMediaServices object. 
-        Response<JobInner> job = ams.getJobs().createWithResponse(resourceGroupName, accountName, transformName, jobName, jobInner,new Context("key", "value") );
-
-        System.out.printf("/nJob submitted: %s", job.getValue().name());
+        // JobInner jobInner = new JobInner().withInput(chosenAsset).withOutputs(jobOutputList);
         
+        // manager.jobs().define(jobName + "_modified_").withExistingTransform(resourceGroupName, accountName, transformName).withInput(chosenAsset).withOutputs(jobOutputList).create();
+        
+        // System.out.printf("/nJob submitted: %s", job.getValue().name());
+
+        
+        // System.out.print(codec);
+        // ams.getTransforms().get(resourceGroupName, accountName, transformName);
+        // manager.transforms().get(resourceGroupName, accountName, transformName);
+        
+        // H264Layer
+        H264Layer h264Layer = new H264Layer()
+            .withBitrate(3600000)
+            .withWidth("1280")
+            .withHeight("720")
+            .withLabel("HD-3600kbps");        
+
+        H264Layer[] vidLayerArr = {h264Layer};
+        List<H264Layer> layers = Arrays.asList(vidLayerArr);
+        
+        H264Video h264Video = new H264Video()
+            .withKeyFrameInterval(Duration.ofSeconds(2))
+            .withComplexity(H264Complexity.SPEED)
+            .withLayers(layers);  // Note that we incorporate the layers here, in the creation of the Codec type object.
+        
+        AacAudio aacAudio = new AacAudio()
+            .withBitrate(128000)
+            .withChannels(2)
+            .withProfile(AacAudioProfile.AAC_LC)
+            .withSamplingRate(48000);
+        
+        Codec[] codecArr = {h264Video, aacAudio};
+        List<Codec> codecs = Arrays.asList(codecArr);
+
+        // FORMAT
+        String filenamePattern = "Video-{Basename}-{Label}-{Bitrate}{Extension}";
+        Mp4Format mp4Format = new Mp4Format().withFilenamePattern(filenamePattern);
+
+        Format[] formatArr = {mp4Format};
+        List<Format> formats = Arrays.asList(formatArr);
+        
+        // STANDARDENCODERPRESET or customPreset
+        StandardEncoderPreset customPreset = new StandardEncoderPreset().withCodecs(codecs).withFormats(formats);
+
+        // Outputs
+        TransformOutput transformOutput = new TransformOutput().withPreset(customPreset);
+        List<TransformOutput> outputs = Arrays.asList(transformOutput);
+
+        // Custom Transform
+       manager.transforms().define(transformName).withExistingMediaService(resourceGroupName, accountName).withOutputs(outputs).create();
+
+        // Running custom job
+        // Headache alarm
+        manager.jobs().define("ExperimentalJob").withExistingTransform(resourceGroupName, accountName, transformName).withInput(chosenAsset).withOutputs(jobOutputList);
+
 
     }
 }
