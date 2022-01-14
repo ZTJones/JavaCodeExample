@@ -5,7 +5,6 @@ import java.util.List;
 import java.util.Random;
 import java.util.UUID;
 
-import javax.print.attribute.standard.JobName;
 
 // As a heads up, many of these were explored but not used.
 import com.azure.core.http.rest.PagedIterable;
@@ -83,6 +82,7 @@ public class App
         // I just sort of enabled everything on the SAS token in order to get it to work. 
         String sasUrl = dotenv.get ("REMOTESTORAGEACCOUNTSAS");
         String storageURL = "https://" + dotenv.get("STORAGEACCOUNTNAME") + ".blob.core.windows.net";
+        String sasToken = dotenv.get("SAS_TOKEN");
         //-----------------------------------------------------
 
         // Getting list of streaming endpoints, then printing them as an example of Iterables
@@ -106,8 +106,8 @@ public class App
         // Next, we need to change gears and head over to storage SDK in order to upload our video.
         // Let's try to authenticate. 
         BlobContainerClient blobContainerClient = new BlobContainerClientBuilder()
-        .endpoint(storageURL)
-        .sasToken(sasUrl)
+            .endpoint(storageURL)
+            .sasToken(sasToken)
             .containerName(test.container())
             .buildClient();
             
@@ -116,33 +116,11 @@ public class App
         BlobClient blobClient = blobContainerClient.getBlobClient(blobName);
         
         // This code works, but only works to upload it once, then causes errors. Can fix with a try
-        // blobClient.uploadFromFile(fileName);
-        
-        // Create preset
-        EncoderNamedPreset namedPreset = EncoderNamedPreset.CONTENT_AWARE_ENCODING;
-        PresetConfigurations configurations = new PresetConfigurations();
-
-        // PresetConfigurations configurations = new PresetConfigurations().withComplexity(complexity);
-        // BuiltInStandardEncoderPreset preset = new BuiltInStandardEncoderPreset().withPresetName(namedPreset).withConfigurations(configurations);
-        // BuiltInStandardEncoderPreset preset = new BuiltInStandardEncoderPreset().withPresetName(namedPreset).withConfigurations(configurations);
-        
-        // Create Output
-        // TransformOutput outputOne = new TransformOutput().withPreset(preset);
-        // TransformOutput[] outputArray = {outputOne};
-        
-        // Create Transform            
-        // List<TransformOutput> outputs = Arrays.asList(outputArray);
-
-        // TransformInner transformInner = new TransformInner()
-        //     .withOutputs(outputs);
-
-        // TransformInner newTransform = ams.getTransforms().createOrUpdate(resourceGroupName, accountName, transformName, transformInner);
+        blobClient.uploadFromFile(fileName);
 
         // Need to create an input asset, an output asset
         JobInputAsset chosenAsset = new JobInputAsset().withAssetName(test.name());
         JobOutputAsset outputAsset = new JobOutputAsset().withAssetName(assetName + "_OUTPUT_Modified");
-        
-        
         
         // You'll need to have an asset ready to "catch" the results. 
         ams.getAssets().createOrUpdate(resourceGroupName, accountName, assetName + "_OUTPUT_Modified", inner);
@@ -150,20 +128,6 @@ public class App
         // JobOutputAsset extends JobOutput, and JobInputAsset extends JobInput
         JobOutput[] outputArr = {outputAsset};
         List<JobOutput> jobOutputList = Arrays.asList(outputArr);
-        
-        // manager.transforms().define(transformName).withExistingMediaService(resourceGroupName, accountName).withOutputs(outputs).create();
-
-        // We need to define the job with inputs and outputs
-        // JobInner jobInner = new JobInner().withInput(chosenAsset).withOutputs(jobOutputList);
-        
-        // manager.jobs().define(jobName + "_modified_").withExistingTransform(resourceGroupName, accountName, transformName).withInput(chosenAsset).withOutputs(jobOutputList).create();
-        
-        // System.out.printf("/nJob submitted: %s", job.getValue().name());
-
-        
-        // System.out.print(codec);
-        // ams.getTransforms().get(resourceGroupName, accountName, transformName);
-        // manager.transforms().get(resourceGroupName, accountName, transformName);
         
         // H264Layer
         H264Layer h264Layer = new H264Layer()
@@ -204,11 +168,19 @@ public class App
         List<TransformOutput> outputs = Arrays.asList(transformOutput);
 
         // Custom Transform
-       manager.transforms().define(transformName).withExistingMediaService(resourceGroupName, accountName).withOutputs(outputs).create();
+    //    manager.transforms().define(transformName).withExistingMediaService(resourceGroupName, accountName).withOutputs(outputs).create();
 
         // Running custom job
-        // Headache alarm
-        manager.jobs().define("ExperimentalJob").withExistingTransform(resourceGroupName, accountName, transformName).withInput(chosenAsset).withOutputs(jobOutputList);
+        // manager.jobs().define("ExperimentalJob").withExistingTransform(resourceGroupName, accountName, transformName).withInput(chosenAsset).withOutputs(jobOutputList);
+
+        // Preset Override Outputs
+        JobOutputAsset PO_JobOutputAsset = new JobOutputAsset().withAssetName("PresetOverrideTest").withPresetOverride(customPreset);
+        JobOutput[] PO_JobOutput = {PO_JobOutputAsset};
+
+        List<JobOutput> PO_JobOutputAssets = Arrays.asList(PO_JobOutput);
+
+        // Preset Override! Note the basic transform used.
+        manager.jobs().define("PresetOverride").withExistingTransform(resourceGroupName, accountName, "StandardEncoding").withInput(chosenAsset).withOutputs(PO_JobOutputAssets);
 
 
     }
